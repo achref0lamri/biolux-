@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Biolux Agency Stats Form</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    label { font-weight: bold; margin-top: 12px; display: block; }
+    input, select { width: 100%; padding: 8px; margin-top: 5px; }
+    button { margin-top: 15px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #ddd;
+    }
+
+    #receiptContainer {
+      margin-top: 30px;
+      padding: 15px;
+      background: #f7f7f7;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Agency Product Statistics</h1>
+
+  <!-- Agency Info -->
+  <label>Shop Name</label>
+  <select id="shopName"></select>
+
+  <label>Wilaya</label>
+  <select id="wilaya"></select>
+
+  <label>Owner Name</label>
+  <input id="owner" type="text" />
+
+  <h3>Products</h3>
+  <label>Select Product</label>
+  <select id="productSelect"></select>
+
+  <label>Quantity</label>
+  <input id="quantity" type="number" />
+
+  <button onclick="addProduct()">Add Product</button>
+  <button onclick="saveForm()">Save Form</button>
+  <button onclick="resetData()" style="background:#d9534f;color:white;">Reset Stored Data</button>
+
+  <div id="receiptContainer"></div>
+
+<script>
+  // JSON DATABASE
+  const db = {
+    wilayas: ["Algiers", "Oran", "Constantine", "Bejaia", "Tlemcen", "Setif", "Blida"],
+    shops: ["TechStore", "ElectroPlus", "MegaHome", "HouseLine"],
+    products: [
+      { brand: "Beko", model: "Beko Fridge 340L", price: 82000 },
+      { brand: "Beko", model: "Beko TV 55'' Smart", price: 110000 },
+      { brand: "Beko", model: "Beko Washing Machine 8kg", price: 90000 },
+
+      { brand: "Maxwell House", model: "Maxwell Coffee Maker X1", price: 5000 },
+      { brand: "Maxwell House", model: "Maxwell Blender 700W", price: 6200 }
+    ]
+  };
+
+  const productSelect = document.getElementById("productSelect");
+  const wilayaSelect = document.getElementById("wilaya");
+  const shopSelect = document.getElementById("shopName");
+
+  // Populate dropdowns
+  db.products.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.model;
+    opt.textContent = `${p.brand} – ${p.model} (${p.price} DA)`;
+    productSelect.appendChild(opt);
+  });
+
+  db.wilayas.forEach(w => {
+    const opt = document.createElement("option");
+    opt.value = w;
+    opt.textContent = w;
+    wilayaSelect.appendChild(opt);
+  });
+
+  db.shops.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    shopSelect.appendChild(opt);
+  });
+
+  let selectedProducts = [];
+  let savedForms = JSON.parse(localStorage.getItem("agencyData")) || [];
+
+  function addProduct() {
+    const model = productSelect.value;
+    const qty = parseInt(document.getElementById("quantity").value);
+    if (!qty || qty <= 0) return;
+
+    const product = db.products.find(p => p.model === model);
+
+    selectedProducts.push({ 
+      model: product.model,
+      brand: product.brand,
+      qty,
+      price: product.price
+    });
+
+    displayReceipt();
+  }
+
+  function calculateNetWorth() {
+    return selectedProducts.reduce((sum, item) => sum + item.qty * item.price, 0);
+  }
+
+  function saveForm() {
+    const entry = {
+      shop: shopSelect.value,
+      wilaya: wilayaSelect.value,
+      owner: document.getElementById("owner").value,
+      products: selectedProducts,
+      totalNetWorth: calculateNetWorth(),
+      timestamp: new Date().toISOString()
+    };
+
+    savedForms.push(entry);
+    localStorage.setItem("agencyData", JSON.stringify(savedForms));
+
+    selectedProducts = [];
+    displayReceipt();
+    alert("Saved!");
+  }
+
+  function resetData() {
+    if (!confirm("Are you sure? This will delete ALL stored data.")) return;
+
+    localStorage.removeItem("agencyData");
+    savedForms = [];
+    selectedProducts = [];
+    displayReceipt();
+  }
+
+  function displayReceipt() {
+    const container = document.getElementById("receiptContainer");
+
+    let html = `<h2>Receipt</h2>`;
+
+    if (selectedProducts.length === 0) {
+      container.innerHTML = "<p>No products selected yet.</p>";
+      return;
+    }
+
+    html += `
+      <table>
+        <tr>
+          <th>Brand</th>
+          <th>Model</th>
+          <th>Quantity</th>
+          <th>Unit Price (DA)</th>
+          <th>Total (DA)</th>
+        </tr>
+    `;
+
+    selectedProducts.forEach(item => {
+      html += `
+        <tr>
+          <td>${item.brand}</td>
+          <td>${item.model}</td>
+          <td>${item.qty}</td>
+          <td>${item.price}</td>
+          <td>${item.qty * item.price}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+      <tr style="font-weight:bold;background:#e5e5e5;">
+        <td colspan="4">Net Worth</td>
+        <td>${calculateNetWorth()} DA</td>
+      </tr>
+      </table>
+    `;
+
+    container.innerHTML = html;
+  }
+
+  displayReceipt();
+</script>
+</body>
+  </html>
+  
